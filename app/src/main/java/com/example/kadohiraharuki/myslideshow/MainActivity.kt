@@ -1,11 +1,14 @@
 package com.example.kadohiraharuki.myslideshow
 
+import android.media.MediaPlayer
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.view.animation.BounceInterpolator
 import android.widget.ImageSwitcher
 import android.widget.ImageView
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlin.concurrent.timer
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,6 +23,13 @@ class MainActivity : AppCompatActivity() {
 
     //10枚の画像のうち、どの画像を表示しているかを把握するためのプロパティ
     private var position = 0
+
+    private var isSlideshow = false
+    //Handlerクラスのインスタンスを生成、Androidでスレッドを使用する場合Handlerクラスを利用する
+    private val handler = Handler()
+
+    //メディアプレイヤーのプロパティ用意
+    private lateinit var player: MediaPlayer
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,8 +47,18 @@ class MainActivity : AppCompatActivity() {
         imageSwitcher.setImageResource(resources[0])
 
         //前後のボタンで次のスライドに移行するように設定
-        prevButton.setOnClickListener{movePosition(-1)}
-        nextButton.setOnClickListener{movePosition(1)}
+        prevButton.setOnClickListener{
+            //アニメーション機能追加
+            imageSwitcher.setInAnimation(this, android.R.anim.fade_in)
+            imageSwitcher.setOutAnimation(this, android.R.anim.fade_out)
+            movePosition(-1)
+        }
+
+        nextButton.setOnClickListener{
+            imageSwitcher.setInAnimation(this, android.R.anim.slide_in_left)
+            imageSwitcher.setOutAnimation(this, android.R.anim.slide_out_right)
+            movePosition(1)
+        }
 
         //ドロイド君のイメージビューをタップした時にアニメーションするようにプログラム
         imageView.setOnClickListener {
@@ -62,6 +82,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        timer(period = 5000){
+            handler.post{
+                //isSlideshowがtrueの時スライド移動
+                if(isSlideshow) movePosition(1)
+            }
+        }
+
+        slideshowButton.setOnClickListener{
+            isSlideshow = !isSlideshow
+            //isSlideshowを起動時
+            when(isSlideshow){
+                true -> player.start()
+                false -> player.apply{
+                    //中止
+                    pause()
+                    //初めから再生
+                    seekTo(0)
+                }
+            }
+        }
+
+        //createメソッドでMediaPlayerのインスタンスを生成
+        player = MediaPlayer.create(this, R.raw.getdown)
+        player.isLooping = true
 
         /*
         //お試し：x軸 ,y軸方向に2.5倍拡大
